@@ -1,100 +1,67 @@
-window.optionChange = (va) => {
-  const fullData = JSON.parse(localStorage.getItem("data"));
-  const description = fullData.find((ss) => ss.name === va).description;
-  document.getElementById("selectedValue").innerText = description;
-  console.log("Option Change", va);
-};
+"use strict";
 
-window.startProcess = () => {
-  const fullData = JSON.parse(localStorage.getItem("data"));
-  const selectedOption = document.getElementById("availableRecords").value;
-  let data = fullData.find((ss) => ss.name === selectedOption);
-  data = data.pattern.split("\n").map((e) => e.split(""));
-  data = data.filter((n) => n.length > 0);
-  localStorage.setItem("regeneratedData", JSON.stringify(data));
-  const topSpace = 100;
-  const leftSpace = 220;
-  render(data, topSpace, leftSpace);
-  setInterval(() => {
-    const regeneratedData = JSON.parse(localStorage.getItem("regeneratedData"));
-    const rows = regeneratedData.length;
-    const columns = regeneratedData[0].length;
-    // Change each cell
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < columns; x++) {
-        const toggle = census(x, y, rows, columns, regeneratedData);
-        if (toggle) {
-          regeneratedData[y][x] = "O";
-        } else {
-          regeneratedData[y][x] = ".";
-        }
-      }
-    }
-    // add some default spacing
-    localStorage.setItem("regeneratedData", JSON.stringify(regeneratedData));
-    render(regeneratedData, topSpace, leftSpace);
-  }, 100);
-};
-
+//#region Global Variables
+let ctx;
 const scale = 4;
 const worldWidth = 480;
 const worldHeight = 240;
+let selectedWorld;
+//#endregion
 
-const canvas = document.querySelector("canvas");
-canvas.width = worldWidth * scale;
-canvas.height = worldHeight * scale;
-const ctx = canvas.getContext("2d");
+//Reading world data and saving it in global constant
+const worldData = await readFile();
 
-const readJsonFile = (file, callback) => {
-  const rawFile = new XMLHttpRequest();
-  rawFile.overrideMimeType("application/json");
-  rawFile.open("GET", file, true);
-  rawFile.onreadystatechange = function () {
-    if (rawFile.readyState === 4 && rawFile.status == "200") {
-      callback(rawFile.responseText);
-    }
-  };
-  rawFile.send(null);
-};
+initializeSelectOptions();
 
-const readFile = async () => {
-  return new Promise((resolve, reject) => {
-    readJsonFile("./src/lexicon.json", (fileDataAsString) => {
-      resolve(JSON.parse(fileDataAsString));
-    });
+initalizeCanvas();
+
+async function initializeSelectOptions() {
+  const selectOption = document.getElementById("availableRecords");
+  worldData.forEach((eachOption) => {
+    const optionEl = document.createElement("option");
+    optionEl.text = eachOption.name;
+    optionEl.title = eachOption.description;
+    selectOption.add(optionEl);
   });
-};
+}
 
-const render = (world, topSpace, leftSpace) => {
+function initalizeCanvas() {
+  const canvas = document.querySelector("canvas");
+  canvas.width = worldWidth * scale;
+  canvas.height = worldHeight * scale;
+  ctx = canvas.getContext("2d");
+}
+
+function render(world, topSpace, leftSpace) {
   ctx.fillStyle = "#202020";
   ctx.fillRect(0, 0, worldWidth * scale, worldHeight * scale);
   ctx.fillStyle = "green";
   world.forEach((rows, y) => {
     rows.forEach(
-      (alive, x) =>
-        alive === "O" &&
-        ctx.fillRect(
-          (x + leftSpace) * scale,
-          (y + topSpace) * scale,
-          scale - 1,
-          scale - 1
-        )
+      (alive, x) => alive === "O" && ctx.fillRect((x + leftSpace) * scale, (y + topSpace) * scale,scale - 1, scale - 1)
     );
   });
-};
+}
 
-var data = await readFile();
+async function readFile() {
+  return new Promise((resolve, reject) => {
+    readJsonFile("./src/lexicon.json", (fileDataAsString) => {
+      resolve(JSON.parse(fileDataAsString));
+    });
+  });
+}
 
-const selectOption = document.getElementById("availableRecords");
-
-localStorage.setItem("data", JSON.stringify(data));
-
-data.forEach((eachOption) => {
-  const optionEl = document.createElement("option");
-  optionEl.text = eachOption.name;
-  optionEl.title = eachOption.description;
-  selectOption.add(optionEl);
-});
+function readJsonFile(file, callback) {
+  const rawFile = new XMLHttpRequest();
+  rawFile.overrideMimeType("application/json");
+  rawFile.open("GET", file, true);
+  rawFile.onreadystatechange = () => {
+    if (rawFile.readyState === 4 && rawFile.status == "200") {
+      callback(rawFile.responseText);
+    }
+  };
+  rawFile.send(null);
+}
 
 // #region Automaton
 function census(x, y, rows, columns, data) {
@@ -157,3 +124,48 @@ function isLive(x, y, data) {
   return false;
 }
 // #endregion
+
+//#region Events
+window.optionChange = (selectedOption) => {
+  if (!selectedOption) return;
+  const description = worldData.find(
+    (ss) => ss.name === selectedOption
+  ).description;
+  document.getElementById("selectedValue").innerText = description;
+};
+
+window.startProcess = () => {
+  const selectedOption = document.getElementById("availableRecords").value;
+  if (!selectedOption) return;
+  selectedWorld = getSelectedWorld(selectedOption);
+  render(selectedWorld, 100, 220);
+  setInterval(() => {
+    regenerate();
+
+    render(selectedWorld, 100, 220);
+  }, 100);
+};
+
+function getSelectedWorld(selectedOption) {
+  let currentWorld = worldData.find((ss) => ss.name === selectedOption);
+  currentWorld = currentWorld.pattern.split("\n").map((e) => e.split(""));
+  currentWorld = currentWorld.filter((n) => n.length > 0);
+  return currentWorld;
+}
+
+function regenerate() {
+  const rows = selectedWorld.length;
+  const columns = selectedWorld[0].length;
+  // Change each cell
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < columns; x++) {
+      const toggle = census(x, y, rows, columns, selectedWorld);
+      if (toggle) {
+        selectedWorld[y][x] = "O";
+      } else {
+        selectedWorld[y][x] = ".";
+      }
+    }
+  }
+}
+//#endregion
