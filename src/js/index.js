@@ -8,6 +8,7 @@ const worldHeight = 240;
 let selectedWorld;
 //#endregion
 
+//#region Initialize
 //Reading world data and saving it in global constant
 const worldData = await readFile();
 
@@ -15,6 +16,9 @@ initializeSelectOptions();
 
 initalizeCanvas();
 
+/**
+ * Initializes Select Box Options
+ */
 async function initializeSelectOptions() {
   const selectOption = document.getElementById("availableRecords");
   worldData.forEach((eachOption) => {
@@ -25,24 +29,40 @@ async function initializeSelectOptions() {
   });
 }
 
+/**
+ * Initialize Canvas with width and height
+ */
 function initalizeCanvas() {
   const canvas = document.querySelector("canvas");
   canvas.width = worldWidth * scale;
   canvas.height = worldHeight * scale;
   ctx = canvas.getContext("2d");
 }
+//#endregion
 
+/**
+ * Renders the new world points on the canvas
+ * @param {worldObject} world | Provide the world info
+ * @param {string} topSpace | Top margin
+ * @param {number} leftSpace | Left margin
+ */
 function render(world, topSpace, leftSpace) {
   ctx.fillStyle = "#202020";
   ctx.fillRect(0, 0, worldWidth * scale, worldHeight * scale);
   ctx.fillStyle = "green";
   world.forEach((rows, y) => {
     rows.forEach(
-      (alive, x) => alive === "O" && ctx.fillRect((x + leftSpace) * scale, (y + topSpace) * scale,scale - 1, scale - 1)
+      (alive, x) =>
+        alive === "O" && 
+        ctx.fillRect((x + leftSpace) * scale, (y + topSpace) * scale, scale - 1, scale - 1)
     );
   });
 }
 
+/**
+ * Reads the data from the json file
+ * @returns json file data
+ */
 async function readFile() {
   return new Promise((resolve, reject) => {
     readJsonFile("./src/lexicon.json", (fileDataAsString) => {
@@ -51,6 +71,11 @@ async function readFile() {
   });
 }
 
+/**
+ * Does AJAX for fetching the file info
+ * @param {string} file File path
+ * @param {function} callback Callback functions
+ */
 function readJsonFile(file, callback) {
   const rawFile = new XMLHttpRequest();
   rawFile.overrideMimeType("application/json");
@@ -64,6 +89,16 @@ function readJsonFile(file, callback) {
 }
 
 // #region Automaton
+
+/**
+ * This returns if the current coordinate should live or die
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {Array} rows world rows
+ * @param {Array} columns world columns
+ * @param {worldDataObject} data World data
+ * @returns {boolean}
+ */
 function census(x, y, rows, columns, data) {
   let c = getNeighbors(x, y, rows, columns, data);
   let underPopulated = false;
@@ -86,6 +121,15 @@ function census(x, y, rows, columns, data) {
   return false;
 }
 
+/**
+ * This returns the current coordinate counts
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {Array} rows world rows
+ * @param {Array} columns world columns
+ * @param {worldDataObject} data World data
+ * @returns {boolean}
+ */
 function getNeighbors(x, y, rows, columns, data) {
   let n = y != rows - 1; // has northern neighbors
   let e = x != 0; // has eastern neighbors
@@ -103,22 +147,49 @@ function getNeighbors(x, y, rows, columns, data) {
   return count;
 }
 
+/**
+ * Checks if given coordinate is under populated with the count
+ * @param {number} c
+ * @returns {boolean}
+ */
 function isUnderPopulated(c) {
   return c < 2;
 }
 
+/**
+ * Checks if given coordinate is Healthy or should live with the count
+ * @param {number} c
+ * @returns {boolean}
+ */
 function isHealthy(c) {
   return c === 2 || c === 3;
 }
 
+/**
+ * Checks if given coordinate is over populated with the count
+ * @param {number} c
+ * @returns {boolean}
+ */
 function isOverPopulated(c) {
   return c > 3;
 }
 
+/**
+ * Checks if given coordinate is should be born or generated
+ * @param {number} c
+ * @returns {boolean}
+ */
 function isBorn(c) {
   return c === 3;
 }
 
+/**
+ *
+ * @param {number} x X coordinate
+ * @param {number} y Y Coordinates
+ * @param {worldObject} data World Object
+ * @returns {boolean} isCurrent Coordinate is live
+ */
 function isLive(x, y, data) {
   if (data[y] && data[y][x]) return data[y][x] === "O";
   return false;
@@ -126,6 +197,12 @@ function isLive(x, y, data) {
 // #endregion
 
 //#region Events
+
+/**
+ * Add description of selected world into label
+ * @param {string} selectedOption Option Selected by user
+ * @returns {undefined}
+ */
 window.optionChange = (selectedOption) => {
   if (!selectedOption) return;
   const description = worldData.find(
@@ -134,18 +211,27 @@ window.optionChange = (selectedOption) => {
   document.getElementById("selectedValue").innerText = description;
 };
 
+/**
+ * Starts the regeneration process of the selected world
+ */
 window.startProcess = () => {
   const selectedOption = document.getElementById("availableRecords").value;
+  const topSpace = 100;
+  const leftSpace = 220;
   if (!selectedOption) return;
   selectedWorld = getSelectedWorld(selectedOption);
-  render(selectedWorld, 100, 220);
+  render(selectedWorld, topSpace, leftSpace);
   setInterval(() => {
     regenerate();
 
-    render(selectedWorld, 100, 220);
+    render(selectedWorld, topSpace, leftSpace);
   }, 100);
 };
 
+/**
+ * fetchs the selected world
+ * @param {string} selectedOption Selected Option
+ */
 function getSelectedWorld(selectedOption) {
   let currentWorld = worldData.find((ss) => ss.name === selectedOption);
   currentWorld = currentWorld.pattern.split("\n").map((e) => e.split(""));
@@ -153,6 +239,9 @@ function getSelectedWorld(selectedOption) {
   return currentWorld;
 }
 
+/**
+ * Regenerates the world for next iteration
+ */
 function regenerate() {
   const rows = selectedWorld.length;
   const columns = selectedWorld[0].length;
