@@ -6,6 +6,7 @@ const scale = 4;
 const worldWidth = 480;
 const worldHeight = 240;
 let selectedWorld;
+let timer;
 //#endregion
 
 //#region Initialize
@@ -53,8 +54,13 @@ function render(world, topSpace, leftSpace) {
   world.forEach((rows, y) => {
     rows.forEach(
       (alive, x) =>
-        alive === "O" && 
-        ctx.fillRect((x + leftSpace) * scale, (y + topSpace) * scale, scale - 1, scale - 1)
+        alive === "O" &&
+        ctx.fillRect(
+          (x + leftSpace) * scale,
+          (y + topSpace) * scale,
+          scale - 1,
+          scale - 1
+        )
     );
   });
 }
@@ -215,15 +221,15 @@ window.optionChange = (selectedOption) => {
  * Starts the regeneration process of the selected world
  */
 window.startProcess = () => {
+  clearInterval(timer);
   const selectedOption = document.getElementById("availableRecords").value;
   const topSpace = 100;
   const leftSpace = 220;
   if (!selectedOption) return;
   selectedWorld = getSelectedWorld(selectedOption);
   render(selectedWorld, topSpace, leftSpace);
-  setInterval(() => {
+  timer = setInterval(() => {
     regenerate();
-
     render(selectedWorld, topSpace, leftSpace);
   }, 100);
 };
