@@ -229,7 +229,7 @@ window.startProcess = () => {
   selectedWorld = getSelectedWorld(selectedOption);
   render(selectedWorld, topSpace, leftSpace);
   timer = setInterval(() => {
-    regenerate();
+    selectedWorld = regenerate();
     render(selectedWorld, topSpace, leftSpace);
   }, 100);
 };
@@ -249,18 +249,20 @@ function getSelectedWorld(selectedOption) {
  * Regenerates the world for next iteration
  */
 function regenerate() {
-  const rows = selectedWorld.length;
-  const columns = selectedWorld[0].length;
+  const next = JSON.parse(JSON.stringify(selectedWorld));
+  const rows = next.length;
+  const columns = next[0].length;
   // Change each cell
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < columns; x++) {
-      const toggle = census(x, y, rows, columns, selectedWorld);
+  for (let rowIdx = 0; rowIdx < rows; rowIdx++) {
+    for (let colIdx = 0; colIdx < columns; colIdx++) {
+      const toggle = census(colIdx, rowIdx, rows, columns, selectedWorld);
       if (toggle) {
-        selectedWorld[y][x] = "O";
+        next[rowIdx][colIdx] = "O";
       } else {
-        selectedWorld[y][x] = ".";
+        next[rowIdx][colIdx] = ".";
       }
     }
   }
+  return next;
 }
 //#endregion
