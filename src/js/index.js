@@ -1,4 +1,4 @@
-"use strict";
+import { next, parse } from "../engine.js";
 
 //#region Global Variables
 let ctx;
@@ -54,7 +54,7 @@ function render(world, topSpace, leftSpace) {
   world.forEach((rows, y) => {
     rows.forEach(
       (alive, x) =>
-        alive === "O" &&
+        alive &&
         ctx.fillRect(
           (x + leftSpace) * scale,
           (y + topSpace) * scale,
@@ -94,114 +94,6 @@ function readJsonFile(file, callback) {
   rawFile.send(null);
 }
 
-// #region Automaton
-
-/**
- * This returns if the current coordinate should live or die
- * @param {number} x X coordinate
- * @param {number} y Y coordinate
- * @param {Array} rows world rows
- * @param {Array} columns world columns
- * @param {worldDataObject} data World data
- * @returns {boolean}
- */
-function census(x, y, rows, columns, data) {
-  let c = getNeighbors(x, y, rows, columns, data);
-  let underPopulated = false;
-  let healthy = false;
-  let overPopulated = false;
-  let born = false;
-  if (isLive(x, y, data)) {
-    underPopulated = isUnderPopulated(c);
-    healthy = isHealthy(c);
-    overPopulated = isOverPopulated(c);
-  } else {
-    born = isBorn(c);
-  }
-  if (underPopulated || overPopulated) {
-    return false;
-  }
-  if (healthy || born) {
-    return true;
-  }
-  return false;
-}
-
-/**
- * This returns the current coordinate counts
- * @param {number} x X coordinate
- * @param {number} y Y coordinate
- * @param {Array} rows world rows
- * @param {Array} columns world columns
- * @param {worldDataObject} data World data
- * @returns {boolean}
- */
-function getNeighbors(x, y, rows, columns, data) {
-  let n = y != rows - 1; // has northern neighbors
-  let e = x != 0; // has eastern neighbors
-  let s = y != 0; // has southern neighbors
-  let w = x != columns - 1; // has western neighbors
-  let count = 0;
-  if (n && isLive(x, y + 1, data)) count++;
-  if (n && e && isLive(x - 1, y + 1, data)) count++;
-  if (e && isLive(x - 1, y, data)) count++;
-  if (s && e && isLive(x - 1, y - 1, data)) count++;
-  if (s && isLive(x, y - 1, data)) count++;
-  if (s && w && isLive(x + 1, y - 1, data)) count++;
-  if (w && isLive(x + 1, y, data)) count++;
-  if (n && w && isLive(x + 1, y + 1, data)) count++;
-  return count;
-}
-
-/**
- * Checks if given coordinate is under populated with the count
- * @param {number} c
- * @returns {boolean}
- */
-function isUnderPopulated(c) {
-  return c < 2;
-}
-
-/**
- * Checks if given coordinate is Healthy or should live with the count
- * @param {number} c
- * @returns {boolean}
- */
-function isHealthy(c) {
-  return c === 2 || c === 3;
-}
-
-/**
- * Checks if given coordinate is over populated with the count
- * @param {number} c
- * @returns {boolean}
- */
-function isOverPopulated(c) {
-  return c > 3;
-}
-
-/**
- * Checks if given coordinate is should be born or generated
- * @param {number} c
- * @returns {boolean}
- */
-function isBorn(c) {
-  return c === 3;
-}
-
-/**
- *
- * @param {number} x X coordinate
- * @param {number} y Y Coordinates
- * @param {worldObject} data World Object
- * @returns {boolean} isCurrent Coordinate is live
- */
-function isLive(x, y, data) {
-  if (data[y] && data[y][x]) return data[y][x] === "O";
-  return false;
-}
-// #endregion
-
 //#region Events
 
 /**
@@ -229,7 +121,7 @@ window.startProcess = () => {
   selectedWorld = getSelectedWorld(selectedOption);
   render(selectedWorld, topSpace, leftSpace);
   timer = setInterval(() => {
-    selectedWorld = regenerate();
+    selectedWorld = next(selectedWorld);
     render(selectedWorld, topSpace, leftSpace);
   }, 100);
 };
@@ -239,30 +131,7 @@ window.startProcess = () => {
  * @param {string} selectedOption Selected Option
  */
 function getSelectedWorld(selectedOption) {
-  let currentWorld = worldData.find((ss) => ss.name === selectedOption);
-  currentWorld = currentWorld.pattern.split("\n").map((e) => e.split(""));
-  currentWorld = currentWorld.filter((n) => n.length > 0);
-  return currentWorld;
+  return parse(worldData.find((ss) => ss.name === selectedOption).pattern);
 }
 
-/**
- * Regenerates the world for next iteration
- */
-function regenerate() {
-  const next = JSON.parse(JSON.stringify(selectedWorld));
-  const rows = next.length;
-  const columns = next[0].length;
-  // Change each cell
-  for (let rowIdx = 0; rowIdx < rows; rowIdx++) {
-    for (let colIdx = 0; colIdx < columns; colIdx++) {
-      const toggle = census(colIdx, rowIdx, rows, columns, selectedWorld);
-      if (toggle) {
-        next[rowIdx][colIdx] = "O";
-      } else {
-        next[rowIdx][colIdx] = ".";
-      }
-    }
-  }
-  return next;
-}
 //#endregion
