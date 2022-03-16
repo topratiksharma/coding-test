@@ -120,19 +120,21 @@ function isBorn(c) {
  * @returns {boolean} isCurrent Coordinate is live
  */
 function isLive(x, y, data) {
-  if (data[y] && data[y][x]) return data[y][x];
-  return false;
+  return data[y][x];
 }
 // #endregion
 
 // (pattern: string) => boolean[][]
 export const parse = (pattern) => {
-  let parsedWorld = pattern.split("\n").map((e) => e.split(""));
-  parsedWorld = parsedWorld.filter((n) => n.length > 0);
+  let parsedWorld = pattern
+    .split("\n")
+    .map((e) => e.split(""))
+    .filter((n) => n.length > 0);
 
   for (let rowIdx = 0; rowIdx < parsedWorld.length; rowIdx++) {
     for (let colIdx = 0; colIdx < parsedWorld[rowIdx].length; colIdx++) {
-      parsedWorld[rowIdx][colIdx] = parsedWorld[rowIdx][colIdx] === "O" ? true : false;
+      parsedWorld[rowIdx][colIdx] =
+        parsedWorld[rowIdx][colIdx] === "O" ? true : false;
     }
   }
 
